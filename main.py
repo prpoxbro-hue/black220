@@ -1,9 +1,9 @@
-import logging
 import os
-import asyncio
 import json
+import asyncio
+import logging
 from threading import Thread
-from flask import Flask
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     ApplicationBuilder,
@@ -19,8 +19,9 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ================= অফলাইন ডাটাবেস (JSON ফাইল) =================
+# ================= ফাইল ডাটাবেস =================
 DATA_FILE = "users.json"
+VERIFIED_FILE = "verified_users.json"
 
 def get_all_users():
     if not os.path.exists(DATA_FILE):
@@ -47,11 +48,49 @@ def save_user_to_file(user):
     except Exception as e:
         logger.error(f"Error saving user: {e}")
 
-# ================= ওয়েব সার্ভার (হোস্টিংয়ের জন্য) =================
+# ভেরিফাইড ইউজার ডাটাবেস হ্যান্ডলার
+def get_verified_users():
+    if not os.path.exists(VERIFIED_FILE):
+        return {"player_ids": [], "telegram_ids": []}
+    try:
+        with open(VERIFIED_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading verified users: {e}")
+        return {"player_ids": [], "telegram_ids": []}
+
+def save_verified_user(player_id=None, telegram_id=None):
+    try:
+        data = get_verified_users()
+        if player_id and str(player_id) not in data["player_ids"]:
+            data["player_ids"].append(str(player_id))
+        if telegram_id and str(telegram_id) not in data["telegram_ids"]:
+            data["telegram_ids"].append(str(telegram_id))
+            
+        with open(VERIFIED_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error saving verified user: {e}")
+
+# ================= ওয়েব সার্ভার (রেন্ডার ও মেলবেট পোস্টব্যাকের জন্য) =================
 app = Flask(__name__)
+
 @app.route('/')
 def home():
-    return "Melbet Bot is Online"
+    return "Melbet Bot Server is Online & Running!", 200
+
+# মেলবেট পোস্টব্যাক রিসিভার এন্ডপয়েন্ট
+@app.route('/postback', methods=['GET', 'POST'])
+def melbet_postback():
+    click_id = request.args.get('click_id')     # ইউজারের টেলিগ্রাম আইডি
+    player_id = request.args.get('player_id')   # মেলবেট প্লেয়ার আইডি
+
+    if click_id or player_id:
+        save_verified_user(player_id=player_id, telegram_id=click_id)
+        logger.info(f"✅ পোস্টব্যাক রিসিভ হয়েছে -> Telegram ID: {click_id}, Player ID: {player_id}")
+        return "SUCCESS", 200
+        
+    return "Missing Parameters", 400
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
@@ -68,7 +107,8 @@ REQUIRED_CHANNELS = [
 ]
 
 MELBET_PROMO = "BETBD666"  # আপনার মেলবেট প্রোমো কোড
-LINK_REGISTRATION = "https://melbet.com"  # রেজিস্ট্রেশন লিঙ্ক
+# আপনার মেলবেটের মেইন অ্যাফিলিয়েট লিংকটি এখানে বসাবেন
+AFFILIATE_BASE_URL = "https://melbet.com"  
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
 
 # শুধুমাত্র Apple Hack ওয়েব অ্যাপ লিঙ্ক
@@ -86,10 +126,11 @@ TEXTS = {
         'reg_msg': f"⚠️ <b>WARNING:</b> You must create a new account using Promo Code: <code>{MELBET_PROMO}</code>",
         'btn_reg_link': "🔗 Register Melbet",
         'btn_next': "✅ I Have Registered",
-        'wait_msg': "⏳ Connecting to server...",
-        'ask_id': "📩 Send your new Melbet User ID:",
-        'error_digit': "❌ Invalid ID! Please send your correct numeric ID.",
-        'success_caption': "✅ <b>VERIFIED SUCCESSFULLY!</b>\n🆔 ID: <code>{uid}</code>",
+        'wait_msg': "⏳ Checking verification with Melbet server...",
+        'ask_id': "📩 Send your new Melbet User ID (Player ID):",
+        'error_digit': "❌ Invalid ID! Please send numeric Melbet ID.",
+        'not_verified': f"❌ <b>Verification Failed!</b>\n\nYour Account/ID was not found under Promo Code: <code>{MELBET_PROMO}</code>.\n\nPlease register using our link and promo code properly.",
+        'success_caption': "✅ <b>VERIFIED SUCCESSFULLY!</b>\n🆔 ID: <code>{uid}</code>\n\nEnjoy Apple Hack Access below 👇",
         'btn_apple_hack': "🍎 APPLE HACK",
         'btn_contact': "👨‍💻 Support"
     },
@@ -98,10 +139,11 @@ TEXTS = {
         'reg_msg': f"⚠️ <b>সতর্কতা:</b> আপনাকে অবশ্যই প্রোমো কোড: <code>{MELBET_PROMO}</code> ব্যবহার করে নতুন একাউন্ট খুলতে হবে।",
         'btn_reg_link': "🔗 মেলবেট রেজিস্ট্রেশন",
         'btn_next': "✅ রেজিস্ট্রেশন সম্পন্ন করেছি",
-        'wait_msg': "⏳ সার্ভারে কানেক্ট হচ্ছে...",
+        'wait_msg': "⏳ মেলবেট সার্ভারে ভেরিফিকেশন চেক করা হচ্ছে...",
         'ask_id': "📩 আপনার নতুন মেলবেট আইডি (User ID) পাঠান:",
-        'error_digit': "❌ ভুল আইডি! শুধুমাত্র সঠিক সংখ্যা বা আইডি কোডটি দিন।",
-        'success_caption': "✅ <b>ভেরিফিকেশন সফল হয়েছে!</b>\n🆔 আইডি: <code>{uid}</code>",
+        'error_digit': "❌ ভুল আইডি! শুধুমাত্র সঠিক সংখ্যা বা মেলবেট আইডি দিন।",
+        'not_verified': f"❌ <b>ভেরিফিকেশন ব্যর্থ হয়েছে!</b>\n\nআপনার একাউন্টটি আমাদের প্রোমো কোড <code>{MELBET_PROMO}</code> দিয়ে খোলা হয়নি অথবা সার্ভারে ডাটা এখনো পৌঁছায়নি।\n\nঅনুগ্রহ করে সঠিক লিংক ও প্রোমো কোড দিয়ে একাউন্ট খুলে আবার চেষ্টা করুন।",
+        'success_caption': "✅ <b>ভেরিফিকেশন সফল হয়েছে!</b>\n🆔 আইডি: <code>{uid}</code>\n\nনিচের বাটন থেকে অ্যাপেল হ্যাক ব্যবহার করুন 👇",
         'btn_apple_hack': "🍎 অ্যাপেল হ্যাক",
         'btn_contact': "👨‍💻 এডমিন সাপোর্ট"
     }
@@ -174,8 +216,12 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['lang'] = lang
     t = TEXTS[lang]
     
+    # ইউজারের টেলিগ্রাম ID সহ ডাইনামিক ট্র্যাকিং লিংক তৈরি
+    separator = "&" if "?" in AFFILIATE_BASE_URL else "?"
+    user_tracking_link = f"{AFFILIATE_BASE_URL}{separator}click_id={update.effective_user.id}"
+    
     keyboard = [
-        [InlineKeyboardButton(t['btn_reg_link'], url=LINK_REGISTRATION)],
+        [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
         [InlineKeyboardButton(t['btn_next'], callback_data='account_created')]
     ]
     
@@ -192,17 +238,12 @@ async def wait_and_ask_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     lang = context.user_data.get('lang', 'bn')
-    msg = await query.message.reply_text(TEXTS[lang]['wait_msg'], parse_mode='HTML')
-    await asyncio.sleep(2)
-    
-    try: await msg.delete()
-    except: pass
-    
     await query.message.reply_text(TEXTS[lang]['ask_id'], parse_mode='HTML')
     return WAITING_FOR_ID
 
 async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.message.text.strip()
+    tg_user_id = str(update.effective_user.id)
     lang = context.user_data.get('lang', 'bn')
     t = TEXTS[lang]
     
@@ -210,7 +251,28 @@ async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(t['error_digit'])
         return WAITING_FOR_ID
 
-    # শুধুমাত্র Apple Hack এবং Admin Support বাটন
+    msg = await update.message.reply_text(t['wait_msg'], parse_mode='HTML')
+    await asyncio.sleep(2)
+    try: await msg.delete()
+    except: pass
+
+    # মেলবেট পোস্টব্যাক ডাটাবেজে ইউজার ভেরিফাই চেক
+    verified_data = get_verified_users()
+    is_verified = (uid in verified_data["player_ids"]) or (tg_user_id in verified_data["telegram_ids"])
+
+    # যদি ভেরিফাই না থাকে
+    if not is_verified:
+        separator = "&" if "?" in AFFILIATE_BASE_URL else "?"
+        user_tracking_link = f"{AFFILIATE_BASE_URL}{separator}click_id={tg_user_id}"
+        
+        retry_keyboard = [
+            [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
+            [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
+        ]
+        await update.message.reply_text(t['not_verified'], reply_markup=InlineKeyboardMarkup(retry_keyboard), parse_mode='HTML')
+        return WAITING_FOR_ID
+
+    # ভেরিফিকেশন সফল হলে
     keyboard = [
         [InlineKeyboardButton(t['btn_apple_hack'], web_app=WebAppInfo(url=APPLE_HACK_URL))],
         [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
@@ -353,7 +415,9 @@ async def admin_broadcast_action(update: Update, context: ContextTypes.DEFAULT_T
 
 # ================= রানার =================
 if __name__ == '__main__':
+    # ব্যাকগ্রাউন্ডে Flask ওয়েব সার্ভার চালু করা
     Thread(target=run_flask, daemon=True).start()
+    
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     user_conv = ConversationHandler(
@@ -379,5 +443,5 @@ if __name__ == '__main__':
 
     application.add_handler(user_conv)
     application.add_handler(admin_conv)
-    print("Bot is starting...")
+    print("Melbet Postback Bot is starting...")
     application.run_polling()
