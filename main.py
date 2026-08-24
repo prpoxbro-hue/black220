@@ -100,17 +100,19 @@ def run_flask():
 BOT_TOKEN = "8765522545:AAESdqy4SIffyqQ_doCP5hVqQ0G1EkL3ryg"
 ADMIN_ID = 8650748971
 
-# চ্যানেল লিস্ট
+# আপনার নতুন চ্যানেল লিস্ট
 REQUIRED_CHANNELS = [
     {"id": "-1004333073371", "link": "https://t.me/+ORzqsgt85SRhZjU0", "name": "📢 Join Channel 1"}
 ]
 
-MELBET_PROMO = "BETBD666"  # আপনার মেলবেট প্রোমো কোড
-# আপনার মেলবেটের মেইন অ্যাফিলিয়েট লিংকটি এখানে বসাবেন
+# আপনার আপডেট করা প্রমো কোড
+MELBET_PROMO = "BLACK220"
+
+# মেলবেটের মূল অ্যাফিলিয়েট লিংক
 AFFILIATE_BASE_URL = "https://melbet.com"  
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
 
-# শুধুমাত্র Apple Hack ওয়েব অ্যাপ লিঙ্ক
+# Apple Hack ওয়েব অ্যাপ লিঙ্ক
 APPLE_HACK_URL = "https://1xbet-melbet-apple.unaux.com/"
 
 # ইমেজ লিঙ্ক সমূহ
@@ -195,7 +197,7 @@ async def check_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         await show_language_menu(update, context)
         return SELECT_LANGUAGE
     else:
-        await query.message.reply_text("❌ Join both channels first!")
+        await query.message.reply_text("❌ Join channel first!")
         return CHECK_JOIN
 
 async def show_language_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -442,5 +444,5 @@ if __name__ == '__main__':
 
     application.add_handler(user_conv)
     application.add_handler(admin_conv)
-    print("Melbet Postback Bot is starting...")
+    print("Melbet Postback Bot is starting with Promo: BLACK220...")
     application.run_polling()
