@@ -87,7 +87,7 @@ REQUIRED_CHANNELS = [
 MELBET_PROMO = "BLACK220"
 
 # আপনার দেওয়া মেলবেট অ্যাফিলিয়েট ট্র্যাকিং লিংক যুক্ত করা হয়েছে
-AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&site=3468223&ad=45415&r=postback"  
+AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&site=3468223&ad=45415&r=registration"  
 
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
 APPLE_HACK_URL = "https://1xbet-melbet-apple.unaux.com/"
