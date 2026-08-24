@@ -25,39 +25,28 @@ DATA_FILE = "users.json"
 VERIFIED_FILE = "verified_melbet.json"
 
 def get_all_users():
-    if not os.path.exists(DATA_FILE):
-        return {}
+    if not os.path.exists(DATA_FILE): return {}
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading users: {e}")
-        return {}
+    except: return {}
 
 def save_user_to_file(user):
     try:
         users = get_all_users()
         user_id_str = str(user.id)
         if user_id_str not in users:
-            users[user_id_str] = {
-                'id': user.id,
-                'first_name': user.first_name,
-                'username': user.username
-            }
+            users[user_id_str] = {'id': user.id, 'first_name': user.first_name, 'username': user.username}
             with open(DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(users, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        logger.error(f"Error saving user: {e}")
+    except: pass
 
-# শুধুমাত্র মেলবেট থেকে পাওয়া পোস্টব্যাক ডাটা সেভ করা
 def get_verified_data():
-    if not os.path.exists(VERIFIED_FILE):
-        return {"player_ids": [], "telegram_ids": []}
+    if not os.path.exists(VERIFIED_FILE): return {"player_ids": [], "telegram_ids": []}
     try:
         with open(VERIFIED_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception as e:
-        return {"player_ids": [], "telegram_ids": []}
+    except: return {"player_ids": [], "telegram_ids": []}
 
 def add_verified_data(player_id=None, telegram_id=None):
     try:
@@ -74,7 +63,7 @@ def add_verified_data(player_id=None, telegram_id=None):
             with open(VERIFIED_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        logger.error(f"Error saving verified data: {e}")
+        logger.error(f"Error: {e}")
 
 # ================= কনফিগারেশন =================
 BOT_TOKEN = "8765522545:AAESdqy4SIffyqQ_doCP5hVqQ0G1EkL3ryg"
@@ -86,7 +75,7 @@ REQUIRED_CHANNELS = [
 
 MELBET_PROMO = "BLACK220"
 
-# আপনার দেওয়া মেলবেট অ্যাফিলিয়েট ট্র্যাকিং লিংক যুক্ত করা হয়েছে
+# স্ক্রিনশটের ২ নম্বর লিংকটি (Link ID: 4459528) এখানে পেস্ট করবেন
 AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&site=3468223&ad=45415&r=registration"  
 
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
@@ -97,24 +86,22 @@ IMG_LANG = "https://i.ibb.co/LzJF0GGz/file-00000000ee647208a867f87bc931da8c.png"
 IMG_REGISTRATION = "https://i.ibb.co/3nLpry7/file-0000000059b072089f5ecf92b19ec92b.png"
 FINAL_IMAGE_URL = "https://i.ibb.co/3nLpry7/file-0000000059b072089f5ecf92b19ec92b.png"
 
-# ================= ওয়েব সার্ভার (আসল মেলবেট পোস্টব্যাক রিসিভার) =================
+# ================= ওয়েব সার্ভার =================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Melbet Postback Server is Active & Waiting for Events!", 200
+    return "Melbet Postback Server Active!", 200
 
-# এই এন্ডপয়েন্টে মেলবেট পোস্টব্যাক ডাটা পাঠাবে
 @app.route('/postback', methods=['GET', 'POST'])
 def melbet_postback():
-    click_id = request.args.get('click_id') or request.args.get('sub1') or request.args.get('sub_id')
+    click_id = request.args.get('click_id') or request.args.get('subid') or request.args.get('sub1') or request.args.get('sub_id')
     player_id = request.args.get('player_id') or request.args.get('user_id') or request.args.get('player')
 
     if click_id or player_id:
         add_verified_data(player_id=player_id, telegram_id=click_id)
-        logger.info(f"🔥 POSTBACK RECEIVED -> Telegram ID: {click_id}, Melbet ID: {player_id}")
+        logger.info(f"🔥 POSTBACK RECEIVED -> Telegram ID: {click_id}, Player ID: {player_id}")
         
-        # সাথে সাথে এডমিনকে টেলিগ্রামে নোটিফিকেশন দেওয়া
         try:
             admin_msg = (
                 f"🔔 <b>নতুন রেজিস্ট্রেশন কনফার্ম হয়েছে!</b>\n\n"
@@ -128,17 +115,17 @@ def melbet_postback():
                 "parse_mode": "HTML"
             }, timeout=5)
         except Exception as e:
-            logger.error(f"Failed to notify admin: {e}")
+            logger.error(f"Error: {e}")
 
         return "SUCCESS", 200
         
-    return "Missing click_id or player_id", 400
+    return "No Data", 400
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# ================= বটের মেসেজ টেক্সট =================
+# ================= বটের টেক্সট =================
 TEXTS = {
     'en': {
         'reg_title': "🚀 MELBET REGISTRATION",
@@ -147,8 +134,8 @@ TEXTS = {
         'btn_next': "✅ I Have Registered",
         'wait_msg': "⏳ Checking Postback records with Melbet server...",
         'ask_id': "📩 Send your new Melbet User ID (Player ID):",
-        'error_digit': "❌ Invalid format! Send numeric Melbet ID.",
-        'not_verified': f"❌ <b>VERIFICATION FAILED!</b>\n\nYour Melbet ID was <b>NOT FOUND</b> under Promo Code: <code>{MELBET_PROMO}</code>.\n\n⚠️ You must register through our official button above. If you just created the account, please wait 2-3 minutes for server sync and send your ID again.",
+        'error_digit': "❌ Invalid ID! Send numeric Melbet ID.",
+        'not_verified': f"❌ <b>VERIFICATION FAILED!</b>\n\nYour Melbet ID was <b>NOT FOUND</b> under Promo Code: <code>{MELBET_PROMO}</code>.\n\n⚠️ You must register through our official button above. Please wait 2-3 minutes for server sync and try again.",
         'success_caption': "✅ <b>VERIFIED BY POSTBACK!</b>\n🆔 Melbet ID: <code>{uid}</code>\n🎁 Promo: <code>{promo}</code> (Confirmed)\n\nEnjoy Apple Hack Access below 👇",
         'btn_apple_hack': "🍎 APPLE HACK",
         'btn_contact': "👨‍💻 Support"
@@ -172,22 +159,17 @@ CHECK_JOIN, SELECT_LANGUAGE, SHOW_MELBET, WAITING_FOR_ID = range(4)
 ADMIN_GET_CONTENT, ADMIN_CONFIRM = range(10, 12)
 
 # ================= হ্যান্ডলার ফাংশনস =================
-
 async def check_membership(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         for channel in REQUIRED_CHANNELS:
             member = await context.bot.get_chat_member(chat_id=channel["id"], user_id=update.effective_user.id)
-            if member.status not in ['creator', 'administrator', 'member']:
-                return False
+            if member.status not in ['creator', 'administrator', 'member']: return False
         return True
-    except:
-        return False
+    except: return False
 
 async def safe_send_photo(context, chat_id, photo, caption=None, reply_markup=None):
-    try:
-        await context.bot.send_photo(chat_id=chat_id, photo=photo, caption=caption, reply_markup=reply_markup, parse_mode='HTML')
-    except:
-        await context.bot.send_message(chat_id=chat_id, text=caption, reply_markup=reply_markup, parse_mode='HTML')
+    try: await context.bot.send_photo(chat_id=chat_id, photo=photo, caption=caption, reply_markup=reply_markup, parse_mode='HTML')
+    except: await context.bot.send_message(chat_id=chat_id, text=caption, reply_markup=reply_markup, parse_mode='HTML')
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -195,12 +177,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     
     if not await check_membership(update, context):
-        keyboard = []
-        for channel in REQUIRED_CHANNELS:
-            keyboard.append([InlineKeyboardButton(channel["name"], url=channel["link"])])
-            
+        keyboard = [[InlineKeyboardButton(c["name"], url=c["link"])] for c in REQUIRED_CHANNELS]
         keyboard.append([InlineKeyboardButton("✅ I Have Joined", callback_data='check_join_status')])
-        
         await safe_send_photo(context, update.effective_chat.id, IMG_START, f"👋 Hello {user.first_name}!\nJoin channel to use this bot.", InlineKeyboardMarkup(keyboard))
         return CHECK_JOIN
         
@@ -210,7 +188,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
     if await check_membership(update, context):
         await show_language_menu(update, context)
         return SELECT_LANGUAGE
@@ -219,13 +196,10 @@ async def check_join_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         return CHECK_JOIN
 
 async def show_language_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("🇺🇸 English", callback_data='lang_en'), InlineKeyboardButton("🇧🇩 বাংলা", callback_data='lang_bn')]
-    ]
+    keyboard = [[InlineKeyboardButton("🇺🇸 English", callback_data='lang_en'), InlineKeyboardButton("🇧🇩 বাংলা", callback_data='lang_bn')]]
     if update.callback_query:
         try: await update.callback_query.message.delete()
         except: pass
-        
     await safe_send_photo(context, update.effective_chat.id, IMG_LANG, "🌐 Select Language:", InlineKeyboardMarkup(keyboard))
 
 async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -235,8 +209,9 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['lang'] = lang
     t = TEXTS[lang]
     
-    # ট্র্যাকিং লিংক তৈরি (ইউজারের টেলিগ্রাম আইডি সহ)
-    user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={update.effective_user.id}"
+    uid = update.effective_user.id
+    # সব ধরণের ট্র্যাকিং প্যারামিটার পাঠানো হচ্ছে
+    user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={uid}&subid={uid}&sub1={uid}"
     
     keyboard = [
         [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
@@ -244,17 +219,14 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     
     text = f"{t['reg_title']}\n\n{t['reg_msg']}"
-    
     try: await query.message.delete()
     except: pass
-    
     await safe_send_photo(context, update.effective_chat.id, IMG_REGISTRATION, text, InlineKeyboardMarkup(keyboard))
     return SHOW_MELBET
 
 async def wait_and_ask_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
     lang = context.user_data.get('lang', 'bn')
     await query.message.reply_text(TEXTS[lang]['ask_id'], parse_mode='HTML')
     return WAITING_FOR_ID
@@ -274,14 +246,11 @@ async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: await msg.delete()
     except: pass
 
-    # ================= পোস্টব্যাক ভেরিফিকেশন চেক =================
     verified_data = get_verified_data()
     is_verified = (uid in verified_data["player_ids"]) or (tg_user_id in verified_data["telegram_ids"])
 
-    # যদি মেলবেটের পোস্টব্যাক ডাটা না থাকে -> সোজা রিজেক্ট করবে
     if not is_verified:
-        user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={tg_user_id}"
-        
+        user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={tg_user_id}&subid={tg_user_id}&sub1={tg_user_id}"
         retry_keyboard = [
             [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
             [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
@@ -289,15 +258,23 @@ async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(t['not_verified'], reply_markup=InlineKeyboardMarkup(retry_keyboard), parse_mode='HTML')
         return WAITING_FOR_ID
 
-    # ভেরিফিকেশন কনফার্ম হলে হ্যাক এক্সেস ওপেন হবে
     keyboard = [
         [InlineKeyboardButton(t['btn_apple_hack'], web_app=WebAppInfo(url=APPLE_HACK_URL))],
         [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
     ]
-
     caption_text = t['success_caption'].format(uid=uid, promo=MELBET_PROMO)
     await safe_send_photo(context, update.effective_chat.id, FINAL_IMAGE_URL, caption_text, InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
+
+# ================= অ্যাডমিন পাওয়ার ও ম্যানুয়াল ভেরিফাই কমান্ড =================
+async def admin_add_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID: return
+    if not context.args:
+        await update.message.reply_text("ব্যবহার নিয়ম: `/add 1779905627`", parse_mode='Markdown')
+        return
+    player_id = context.args[0].strip()
+    add_verified_data(player_id=player_id)
+    await update.message.reply_text(f"✅ Player ID: `{player_id}` ম্যানুয়ালি ভেরিফাইড করা হয়েছে!", parse_mode='Markdown')
 
 # ================= ব্রডকাস্ট সেকশন =================
 def parse_buttons(text: str):
@@ -311,8 +288,7 @@ def parse_buttons(text: str):
         for line in button_lines:
             if '|' in line:
                 btn_parts = line.split('|', 1)
-                b_name = btn_parts[0].strip()
-                b_url = btn_parts[1].strip()
+                b_name, b_url = btn_parts[0].strip(), btn_parts[1].strip()
                 if b_name and b_url.startswith(('http://', 'https://')):
                     keyboard.append([InlineKeyboardButton(b_name, url=b_url)])
         if keyboard: return clean_text, InlineKeyboardMarkup(keyboard)
@@ -329,7 +305,13 @@ async def send_broadcast_to_user(bot, chat_id, bc_data):
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
     users = get_all_users()
-    instruction = f"👑 <b>অ্যাডমিন প্যানেল</b>\n\n👥 <b>মোট ইউজার:</b> {len(users)} জন\n\n📢 ব্রডকাস্ট পাঠাতে মেসেজ (ফটো/ভিডিও/টেক্সট) পাঠান।"
+    instruction = (
+        f"👑 <b>অ্যাডমিন প্যানেল</b>\n\n"
+        f"👥 <b>মোট ইউজার:</b> {len(users)} জন\n\n"
+        f"🛠 <b>ম্যানুয়াল ভেরিফাই কমান্ড:</b>\n"
+        f"<code>/add মেলবেট_আইডি</code> (যেমন: <code>/add 1779905627</code>)\n\n"
+        f"📢 ব্রডকাস্ট পাঠাতে মেসেজ (ফটো/ভিডিও/টেক্সট) পাঠান।"
+    )
     await update.message.reply_text(instruction, parse_mode='HTML')
     return ADMIN_GET_CONTENT
 
@@ -394,7 +376,8 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler('start', start)]
     )
 
+    application.add_handler(CommandHandler('add', admin_add_id))
     application.add_handler(user_conv)
     application.add_handler(admin_conv)
-    print("Strict Melbet Postback Bot Running with Affiliate Link...")
+    print("Bot Running...")
     application.run_polling()
