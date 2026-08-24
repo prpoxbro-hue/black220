@@ -102,8 +102,7 @@ ADMIN_ID = 8650748971
 
 # চ্যানেল লিস্ট
 REQUIRED_CHANNELS = [
-    {"id": "-1001481593780", "link": "https://t.me/+3U0nMzWs4Aw0YjFl", "name": "📢 Join Channel 1"},
-    {"id": "-1003974496364", "link": "https://t.me/+sS-QizZPn4BmMDg1", "name": "📢 Join Channel 2"}
+    {"id": "-1004333073371", "link": "https://t.me/+ORzqsgt85SRhZjU0", "name": "📢 Join Channel 1"}
 ]
 
 MELBET_PROMO = "BETBD666"  # আপনার মেলবেট প্রোমো কোড
