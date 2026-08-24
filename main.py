@@ -31,14 +31,22 @@ def get_all_users():
             return json.load(f)
     except: return {}
 
-def save_user_to_file(user):
+def save_user_to_file(user, melbet_id=None):
     try:
         users = get_all_users()
         user_id_str = str(user.id)
         if user_id_str not in users:
-            users[user_id_str] = {'id': user.id, 'first_name': user.first_name, 'username': user.username}
-            with open(DATA_FILE, "w", encoding="utf-8") as f:
-                json.dump(users, f, indent=4, ensure_ascii=False)
+            users[user_id_str] = {
+                'id': user.id,
+                'first_name': user.first_name,
+                'username': user.username,
+                'melbet_id': melbet_id
+            }
+        else:
+            if melbet_id:
+                users[user_id_str]['melbet_id'] = melbet_id
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, indent=4, ensure_ascii=False)
     except: pass
 
 def get_verified_data():
@@ -66,7 +74,13 @@ def add_verified_data(player_id=None, telegram_id=None):
         logger.error(f"Error: {e}")
 
 # ================= কনফিগারেশন =================
+# মেইন ইউজার বট টোকেন
 BOT_TOKEN = "8765522545:AAESdqy4SIffyqQ_doCP5hVqQ0G1EkL3ryg"
+
+# আপনার দেওয়া নতুন নোটিফিকেশন বট টোকেন
+NOTIFY_BOT_TOKEN = "8832123190:AAHwjoaDmiMAQlSPwZdg2do0L98RjbJiltI"
+
+# আপনার এডমিন চ্যাট আইডি
 ADMIN_ID = 8650748971
 
 REQUIRED_CHANNELS = [
@@ -74,10 +88,7 @@ REQUIRED_CHANNELS = [
 ]
 
 MELBET_PROMO = "BLACK220"
-
-# স্ক্রিনশটের ২ নম্বর লিংকটি (Link ID: 4459528) এখানে পেস্ট করবেন
-AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&pb=03e5301340854108aa53e90b3ee9c869&click_id={click_id}"  
-
+AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&site=3468223&ad=45415&r=registration"  
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
 APPLE_HACK_URL = "https://1xbet-melbet-apple.unaux.com/"
 
@@ -86,39 +97,29 @@ IMG_LANG = "https://i.ibb.co/LzJF0GGz/file-00000000ee647208a867f87bc931da8c.png"
 IMG_REGISTRATION = "https://i.ibb.co/3nLpry7/file-0000000059b072089f5ecf92b19ec92b.png"
 FINAL_IMAGE_URL = "https://i.ibb.co/3nLpry7/file-0000000059b072089f5ecf92b19ec92b.png"
 
-# ================= ওয়েব সার্ভার =================
+# ================= ওয়েব সার্ভার (রেন্ডার চালু রাখার জন্য) =================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Melbet Postback Server Active!", 200
+    return "Melbet Notification Bot System Active!", 200
 
 @app.route('/postback', methods=['GET', 'POST'])
 def melbet_postback():
-    click_id = request.args.get('click_id') or request.args.get('subid') or request.args.get('sub1') or request.args.get('sub_id')
-    player_id = request.args.get('player_id') or request.args.get('user_id') or request.args.get('player')
-
+    click_id = request.args.get('click_id') or request.args.get('subid')
+    player_id = request.args.get('player_id') or request.args.get('user_id')
     if click_id or player_id:
         add_verified_data(player_id=player_id, telegram_id=click_id)
-        logger.info(f"🔥 POSTBACK RECEIVED -> Telegram ID: {click_id}, Player ID: {player_id}")
-        
+        # পোস্টব্যাক ডাটা আসলে নোটিফিকেশন বটে পাঠানো
         try:
-            admin_msg = (
-                f"🔔 <b>নতুন রেজিস্ট্রেশন কনফার্ম হয়েছে!</b>\n\n"
-                f"🆔 <b>Player ID:</b> <code>{player_id}</code>\n"
-                f"👤 <b>Telegram ID:</b> <code>{click_id}</code>\n"
-                f"🎁 <b>Promo:</b> {MELBET_PROMO}"
-            )
-            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
+            msg = f"🔥 <b>অটো পোস্টব্যাক হিট হয়েছে!</b>\n\n🆔 Player ID: <code>{player_id}</code>\n👤 Telegram ID: <code>{click_id}</code>"
+            requests.post(f"https://api.telegram.org/bot{NOTIFY_BOT_TOKEN}/sendMessage", json={
                 "chat_id": ADMIN_ID,
-                "text": admin_msg,
+                "text": msg,
                 "parse_mode": "HTML"
-            }, timeout=5)
-        except Exception as e:
-            logger.error(f"Error: {e}")
-
+            })
+        except: pass
         return "SUCCESS", 200
-        
     return "No Data", 400
 
 def run_flask():
@@ -132,11 +133,11 @@ TEXTS = {
         'reg_msg': f"⚠️ <b>WARNING:</b> You must create a new account using our link and Promo Code: <code>{MELBET_PROMO}</code>",
         'btn_reg_link': "🔗 Register Melbet",
         'btn_next': "✅ I Have Registered",
-        'wait_msg': "⏳ Checking Postback records with Melbet server...",
+        'wait_msg': "⏳ Submitting your ID to Admin & Melbet server...",
         'ask_id': "📩 Send your new Melbet User ID (Player ID):",
-        'error_digit': "❌ Invalid ID! Send numeric Melbet ID.",
-        'not_verified': f"❌ <b>VERIFICATION FAILED!</b>\n\nYour Melbet ID was <b>NOT FOUND</b> under Promo Code: <code>{MELBET_PROMO}</code>.\n\n⚠️ You must register through our official button above. Please wait 2-3 minutes for server sync and try again.",
-        'success_caption': "✅ <b>VERIFIED BY POSTBACK!</b>\n🆔 Melbet ID: <code>{uid}</code>\n🎁 Promo: <code>{promo}</code> (Confirmed)\n\nEnjoy Apple Hack Access below 👇",
+        'error_digit': "❌ Invalid format! Send numeric Melbet ID.",
+        'pending_msg': "📩 <b>ID SUBMITTED FOR VERIFICATION!</b>\n\n🆔 Melbet ID: <code>{uid}</code>\n🎁 Promo: <code>{promo}</code>\n\n⏳ Your ID has been sent to Admin for approval. Once verified, click below or restart the bot to access Apple Hack.",
+        'success_caption': "✅ <b>VERIFIED SUCCESSFULLY!</b>\n🆔 Melbet ID: <code>{uid}</code>\n🎁 Promo: <code>{promo}</code> (Active)\n\nEnjoy Apple Hack Access below 👇",
         'btn_apple_hack': "🍎 APPLE HACK",
         'btn_contact': "👨‍💻 Support"
     },
@@ -145,11 +146,11 @@ TEXTS = {
         'reg_msg': f"⚠️ <b>সতর্কতা:</b> আপনাকে অবশ্যই আমাদের লিংক ও প্রোমো কোড: <code>{MELBET_PROMO}</code> ব্যবহার করে নতুন একাউন্ট খুলতে হবে।",
         'btn_reg_link': "🔗 মেলবেট রেজিস্ট্রেশন",
         'btn_next': "✅ রেজিস্ট্রেশন সম্পন্ন করেছি",
-        'wait_msg': "⏳ মেলবেট পোস্টব্যাক সার্ভারে আইডি চেক করা হচ্ছে...",
+        'wait_msg': "⏳ আপনার আইডিটি অ্যাডমিন ও সার্ভারে পাঠানো হচ্ছে...",
         'ask_id': "📩 আপনার নতুন মেলবেট আইডি (Player ID) পাঠান:",
-        'error_digit': "❌ ভুল ফরম্যাট! শুধুমাত্র সঠিক সংখ্যা বা আইডিটি দিন।",
-        'not_verified': f"❌ <b>ভেরিফিকেশন ব্যর্থ হয়েছে!</b>\n\nআপনার মেলবেট আইডিটি আমাদের প্রোমো কোড <code>{MELBET_PROMO}</code> এর অধীনে পাওয়া যায়নি!\n\n⚠️ আপনাকে অবশ্যই উপরের বাটনে ক্লিক করে একাউন্ট খুলতে হবে। মাত্র একাউন্ট করে থাকলে ২-৩ মিনিট অপেক্ষা করে আবার আইডিটি পাঠান।",
-        'success_caption': "✅ <b>পোস্টব্যাক ভেরিফিকেশন সফল হয়েছে!</b>\n🆔 মেলবেট আইডি: <code>{uid}</code>\n🎁 প্রোমো কোড: <code>{promo}</code> (নিশ্চিত)\n\nনিচের বাটন থেকে অ্যাপেল হ্যাক ব্যবহার করুন 👇",
+        'error_digit': "❌ ভুল ফরম্যাট! শুধুমাত্র সঠিক সংখ্যা বা মেলবেট আইডি দিন।",
+        'pending_msg': "📩 <b>আইডি জমা নেওয়া হয়েছে!</b>\n\n🆔 মেলবেট আইডি: <code>{uid}</code>\n🎁 প্রোমো কোড: <code>{promo}</code>\n\n⏳ আপনার আইডিটি অ্যাডমিনের কাছে ভেরিফিকেশনের জন্য পাঠানো হয়েছে। অ্যাডমিন অ্যাপ্রুভ করলেই আপনার অ্যাপেল হ্যাক আনলক হয়ে যাবে।",
+        'success_caption': "✅ <b>ভেরিফিকেশন সফল হয়েছে!</b>\n🆔 মেলবেট আইডি: <code>{uid}</code>\n🎁 প্রোমো কোড: <code>{promo}</code> (সক্রিয়)\n\nনিচের বাটন থেকে অ্যাপেল হ্যাক ব্যবহার করুন 👇",
         'btn_apple_hack': "🍎 অ্যাপেল হ্যাক",
         'btn_contact': "👨‍💻 এডমিন সাপোর্ট"
     }
@@ -210,8 +211,7 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = TEXTS[lang]
     
     uid = update.effective_user.id
-    # সব ধরণের ট্র্যাকিং প্যারামিটার পাঠানো হচ্ছে
-    user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={uid}&subid={uid}&sub1={uid}"
+    user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={uid}&subid={uid}"
     
     keyboard = [
         [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
@@ -233,7 +233,7 @@ async def wait_and_ask_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.message.text.strip()
-    tg_user_id = str(update.effective_user.id)
+    user = update.effective_user
     lang = context.user_data.get('lang', 'bn')
     t = TEXTS[lang]
     
@@ -246,25 +246,46 @@ async def receive_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try: await msg.delete()
     except: pass
 
-    verified_data = get_verified_data()
-    is_verified = (uid in verified_data["player_ids"]) or (tg_user_id in verified_data["telegram_ids"])
+    # ইউজারের মেলবেট আইডি ডাটাবেজে সেভ
+    save_user_to_file(user, melbet_id=uid)
 
-    if not is_verified:
-        user_tracking_link = f"{AFFILIATE_BASE_URL}&click_id={tg_user_id}&subid={tg_user_id}&sub1={tg_user_id}"
-        retry_keyboard = [
-            [InlineKeyboardButton(t['btn_reg_link'], url=user_tracking_link)],
+    # ================= নোটিফিকেশন বটে অ্যাডমিনকে মেসেজ পাঠানো =================
+    try:
+        admin_alert = (
+            f"🔔 <b>নতুন মেলবেট আইডি সাবমিট হয়েছে!</b>\n\n"
+            f"👤 <b>ইউজার:</b> {user.first_name} (<code>@{user.username or 'No Username'}</code>)\n"
+            f"🆔 <b>টেলিগ্রাম আইডি:</b> <code>{user.id}</code>\n"
+            f"🎯 <b>মেলবেট Player ID:</b> <code>{uid}</code>\n"
+            f"🎁 <b>প্রোমো কোড:</b> {MELBET_PROMO}\n\n"
+            f"👉 <i>অ্যাপ্রুভ করতে মেইন বটে গিয়ে লিখুন:</i>\n<code>/add {uid}</code>"
+        )
+        requests.post(f"https://api.telegram.org/bot{NOTIFY_BOT_TOKEN}/sendMessage", json={
+            "chat_id": ADMIN_ID,
+            "text": admin_alert,
+            "parse_mode": "HTML"
+        }, timeout=5)
+    except Exception as e:
+        logger.error(f"Notification Error: {e}")
+
+    # চেক করা হচ্ছে আইডিটি অলরেডি অ্যাপ্রুভড কি না
+    verified_data = get_verified_data()
+    is_verified = (uid in verified_data["player_ids"]) or (str(user.id) in verified_data["telegram_ids"])
+
+    if is_verified:
+        keyboard = [
+            [InlineKeyboardButton(t['btn_apple_hack'], web_app=WebAppInfo(url=APPLE_HACK_URL))],
             [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
         ]
-        await update.message.reply_text(t['not_verified'], reply_markup=InlineKeyboardMarkup(retry_keyboard), parse_mode='HTML')
+        caption_text = t['success_caption'].format(uid=uid, promo=MELBET_PROMO)
+        await safe_send_photo(context, update.effective_chat.id, FINAL_IMAGE_URL, caption_text, InlineKeyboardMarkup(keyboard))
+        return ConversationHandler.END
+    else:
+        # আইডি জমা নেওয়ার মেসেজ
+        contact_keyboard = [
+            [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
+        ]
+        await update.message.reply_text(t['pending_msg'].format(uid=uid, promo=MELBET_PROMO), reply_markup=InlineKeyboardMarkup(contact_keyboard), parse_mode='HTML')
         return WAITING_FOR_ID
-
-    keyboard = [
-        [InlineKeyboardButton(t['btn_apple_hack'], web_app=WebAppInfo(url=APPLE_HACK_URL))],
-        [InlineKeyboardButton(t['btn_contact'], url=ADMIN_USER_LINK)]
-    ]
-    caption_text = t['success_caption'].format(uid=uid, promo=MELBET_PROMO)
-    await safe_send_photo(context, update.effective_chat.id, FINAL_IMAGE_URL, caption_text, InlineKeyboardMarkup(keyboard))
-    return ConversationHandler.END
 
 # ================= অ্যাডমিন পাওয়ার ও ম্যানুয়াল ভেরিফাই কমান্ড =================
 async def admin_add_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -274,7 +295,31 @@ async def admin_add_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     player_id = context.args[0].strip()
     add_verified_data(player_id=player_id)
-    await update.message.reply_text(f"✅ Player ID: `{player_id}` ম্যানুয়ালি ভেরিফাইড করা হয়েছে!", parse_mode='Markdown')
+    
+    # ইউজারকে স্বয়ংক্রিয়ভাবে মেসেজ পাঠিয়ে হ্যাক ওপেন করে দেওয়া
+    users = get_all_users()
+    matched_user_id = None
+    for u_id, u_info in users.items():
+        if u_info.get('melbet_id') == player_id:
+            matched_user_id = u_id
+            break
+
+    if matched_user_id:
+        try:
+            keyboard = [
+                [InlineKeyboardButton("🍎 APPLE HACK", web_app=WebAppInfo(url=APPLE_HACK_URL))],
+                [InlineKeyboardButton("👨‍💻 Admin Support", url=ADMIN_USER_LINK)]
+            ]
+            await context.bot.send_message(
+                chat_id=int(matched_user_id),
+                text=f"🎉 <b>অভিনন্দন!</b> আপনার মেলবেট আইডি (<code>{player_id}</code>) অ্যাডমিন কর্তৃক অ্যাপ্রুভ হয়েছে।\n\nনিচের বাটন থেকে অ্যাপেল হ্যাক ব্যবহার করুন 👇",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            logger.error(f"Failed to send unlock message to user: {e}")
+
+    await update.message.reply_text(f"✅ <b>Player ID:</b> <code>{player_id}</code> অ্যাপ্রুভ করা হয়েছে এবং ইউজারকে হ্যাকের লিংক পাঠানো হয়েছে!", parse_mode='HTML')
 
 # ================= ব্রডকাস্ট সেকশন =================
 def parse_buttons(text: str):
@@ -308,7 +353,7 @@ async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     instruction = (
         f"👑 <b>অ্যাডমিন প্যানেল</b>\n\n"
         f"👥 <b>মোট ইউজার:</b> {len(users)} জন\n\n"
-        f"🛠 <b>ম্যানুয়াল ভেরিফাই কমান্ড:</b>\n"
+        f"🛠 <b>ম্যানুয়াল অ্যাপ্রুভ কমান্ড:</b>\n"
         f"<code>/add মেলবেট_আইডি</code> (যেমন: <code>/add 1779905627</code>)\n\n"
         f"📢 ব্রডকাস্ট পাঠাতে মেসেজ (ফটো/ভিডিও/টেক্সট) পাঠান।"
     )
@@ -379,5 +424,5 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('add', admin_add_id))
     application.add_handler(user_conv)
     application.add_handler(admin_conv)
-    print("Bot Running...")
+    print("Dual Bot Notification & Verification System Running...")
     application.run_polling()
