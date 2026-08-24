@@ -76,7 +76,7 @@ REQUIRED_CHANNELS = [
 MELBET_PROMO = "BLACK220"
 
 # স্ক্রিনশটের ২ নম্বর লিংকটি (Link ID: 4459528) এখানে পেস্ট করবেন
-AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&site=3468223&ad=45415&r=registration"  
+AFFILIATE_BASE_URL = "https://refpa3665.com/L?tag=d_3468223m_45415c_&pb=03e5301340854108aa53e90b3ee9c869&click_id={click_id}"  
 
 ADMIN_USER_LINK = "https://t.me/SUNNY_BRO1"
 APPLE_HACK_URL = "https://1xbet-melbet-apple.unaux.com/"
