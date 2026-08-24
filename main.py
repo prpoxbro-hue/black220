@@ -97,8 +97,8 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 # ================= কনফিগারেশন =================
-BOT_TOKEN = "8638577238:AAGmHqBMuaTw-KJi7rg7w2GfJwAooJdxMYY"
-ADMIN_ID = 1146186608
+BOT_TOKEN = "8765522545:AAESdqy4SIffyqQ_doCP5hVqQ0G1EkL3ryg"
+ADMIN_ID = 8650748971
 
 # চ্যানেল লিস্ট
 REQUIRED_CHANNELS = [
